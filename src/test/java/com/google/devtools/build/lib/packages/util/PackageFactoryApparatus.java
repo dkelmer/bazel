@@ -159,7 +159,7 @@ public class PackageFactoryApparatus {
     Builder resultBuilder =
         factory.evaluateBuildFile(
             externalPkg.getWorkspaceName(),
-            packageId,
+            workspaceMappings, packageId,
             buildFileAST,
             buildFile,
             globber,

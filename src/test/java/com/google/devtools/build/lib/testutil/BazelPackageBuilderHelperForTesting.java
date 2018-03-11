@@ -14,12 +14,14 @@
 package com.google.devtools.build.lib.testutil;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.devtools.build.lib.analysis.BlazeDirectories;
 import com.google.devtools.build.lib.cmdline.Label;
 import com.google.devtools.build.lib.cmdline.PackageIdentifier;
+import com.google.devtools.build.lib.cmdline.RepositoryName;
 import com.google.devtools.build.lib.packages.NoSuchPackageException;
 import com.google.devtools.build.lib.packages.Package;
 import com.google.devtools.build.lib.packages.RuleClassProvider;
@@ -43,7 +45,8 @@ public class BazelPackageBuilderHelperForTesting implements Package.Builder.Help
   }
 
   @Override
-  public Package createFreshPackage(PackageIdentifier packageId, String runfilesPrefix) {
+  public Package createFreshPackage(PackageIdentifier packageId, String runfilesPrefix,
+      ImmutableMap<RepositoryName, RepositoryName> workspaceMappings) {
     return Package.Builder.DefaultHelper.INSTANCE.createFreshPackage(packageId, runfilesPrefix);
   }
 

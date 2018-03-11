@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.cmdline.Label;
 import com.google.devtools.build.lib.cmdline.LabelSyntaxException;
 import com.google.devtools.build.lib.cmdline.LabelValidator;
+import com.google.devtools.build.lib.cmdline.RepositoryName;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.events.NullEventHandler;
@@ -36,6 +37,7 @@ import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.BazelLibrary;
 import com.google.devtools.build.lib.syntax.BuildFileAST;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
+import com.google.devtools.build.lib.syntax.BuiltinFunction.Factory;
 import com.google.devtools.build.lib.syntax.ClassObject;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.Environment.Extension;
@@ -44,6 +46,7 @@ import com.google.devtools.build.lib.syntax.Environment.Phase;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.FuncallExpression;
 import com.google.devtools.build.lib.syntax.FunctionSignature;
+import com.google.devtools.build.lib.syntax.FunctionSignature.Shape;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -51,6 +54,7 @@ import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkSemantics;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
+import com.google.devtools.build.lib.syntax.SkylarkType;
 import com.google.devtools.build.lib.vfs.Path;
 import java.io.File;
 import java.util.HashMap;
@@ -275,6 +279,7 @@ public class WorkspaceFactory {
     }
     builder.addRegisteredExecutionPlatforms(aPackage.getRegisteredExecutionPlatforms());
     builder.addRegisteredToolchains(aPackage.getRegisteredToolchains());
+    builder.addWorkspaceMappings(aPackage);
     for (Rule rule : aPackage.getTargets(Rule.class)) {
       try {
         // The old rule references another Package instance and we wan't to keep the invariant that
@@ -356,6 +361,7 @@ public class WorkspaceFactory {
         }
       };
 
+
   private static BuiltinFunction newBindFunction(final RuleFactory ruleFactory) {
     return new BuiltinFunction(
         "bind", FunctionSignature.namedOnly(1, "name", "actual"), BuiltinFunction.USE_AST_ENV) {
@@ -387,6 +393,50 @@ public class WorkspaceFactory {
       }
     };
   }
+
+  @SkylarkSignature(
+      name = "assign",
+      returnType = NoneType.class,
+      doc = "...",
+      parameters =  {
+          @Param(name = "within", doc = "...", type = String.class, named = true, positional = false),
+          @Param(name = "local", doc = "...", type = String.class, named = true, positional = false),
+          @Param(name = "actual", doc = "...", type = String.class, named = true, positional = false),
+      }
+  )
+  private static BuiltinFunction.Factory newAssignFunction =
+      new BuiltinFunction.Factory("assign") {
+        public BuiltinFunction create(final RuleFactory ruleFactory) {
+          return new BuiltinFunction(
+              "assign",
+              FunctionSignature.WithValues.create(
+                  FunctionSignature.namedOnly(3, "within", "local", "actual"),
+                  null, // no default values
+                  ImmutableList.of(SkylarkType.STRING, SkylarkType.STRING, SkylarkType.STRING)
+              ),
+              BuiltinFunction.USE_LOC_ENV
+          ) {
+            public Object invoke(
+                String within,
+                String local,
+                String actual,
+                Location location,
+                Environment env) throws EvalException {
+              // Add to the package definition for later.
+              Package.Builder builder = PackageFactory.getContext(env, location).pkgBuilder;
+              try {
+                builder.addWorkspaceAssignment(
+                    RepositoryName.create(within),
+                    RepositoryName.create(local),
+                    RepositoryName.create(actual));
+              } catch (LabelSyntaxException e) {
+                throw new EvalException(location, e);
+              }
+              return NONE;
+            }
+          };
+        }
+      };
 
   @SkylarkSignature(
     name = "register_execution_platforms",
@@ -507,6 +557,7 @@ public class WorkspaceFactory {
       boolean allowOverride, RuleFactory ruleFactory) {
     Map<String, BaseFunction> map = new HashMap<>();
     map.put("bind", newBindFunction(ruleFactory));
+    map.put("assign", newAssignFunction.apply(ruleFactory));
     map.put(
         "register_execution_platforms", newRegisterExecutionPlatformsFunction.apply(ruleFactory));
     map.put("register_toolchains", newRegisterToolchainsFunction.apply(ruleFactory));

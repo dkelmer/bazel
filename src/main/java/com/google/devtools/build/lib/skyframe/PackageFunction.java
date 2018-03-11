@@ -29,6 +29,7 @@ import com.google.devtools.build.lib.clock.BlazeClock;
 import com.google.devtools.build.lib.cmdline.Label;
 import com.google.devtools.build.lib.cmdline.LabelSyntaxException;
 import com.google.devtools.build.lib.cmdline.PackageIdentifier;
+import com.google.devtools.build.lib.cmdline.RepositoryName;
 import com.google.devtools.build.lib.collect.nestedset.NestedSet;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.ExtendedEventHandler.Postable;
@@ -420,6 +421,15 @@ public class PackageFunction implements SkyFunction {
       return null;
     }
     String workspaceName = workspaceNameValue.getName();
+
+    SkyKey externalPackageKey = PackageValue.key(Label.EXTERNAL_PACKAGE_IDENTIFIER);
+    PackageValue externalPackageValue = (PackageValue) env.getValue(externalPackageKey);
+    if (externalPackageValue == null) {
+      return null;
+    }
+    ImmutableMap<RepositoryName, RepositoryName> workspaceMappings =
+        externalPackageValue.getPackage().getWorkspaceMappings(packageId.getRepository());
+
     RootedPath buildFileRootedPath = packageLookupValue.getRootedPath(packageId);
     FileValue buildFileValue = null;
     Path buildFilePath = buildFileRootedPath.asPath();
@@ -475,6 +485,7 @@ public class PackageFunction implements SkyFunction {
     LoadedPackageCacheEntry packageCacheEntry =
         loadPackage(
             workspaceName,
+            workspaceMappings,
             replacementContents,
             packageId,
             buildFilePath,
@@ -1151,6 +1162,7 @@ public class PackageFunction implements SkyFunction {
   @Nullable
   private LoadedPackageCacheEntry loadPackage(
       String workspaceName,
+      ImmutableMap<RepositoryName, RepositoryName> workspaceMappings,
       @Nullable String replacementContents,
       PackageIdentifier packageId,
       Path buildFilePath,
@@ -1233,6 +1245,7 @@ public class PackageFunction implements SkyFunction {
         long startTimeNanos = BlazeClock.nanoTime();
         Package.Builder pkgBuilder = packageFactory.createPackageFromAst(
             workspaceName,
+            workspaceMappings,
             packageId,
             buildFilePath,
             astParseResult,
