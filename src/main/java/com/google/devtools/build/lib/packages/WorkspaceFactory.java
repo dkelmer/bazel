@@ -33,32 +33,19 @@ import com.google.devtools.build.lib.packages.PackageFactory.EnvironmentExtensio
 import com.google.devtools.build.lib.packages.RuleFactory.InvalidRuleException;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
-import com.google.devtools.build.lib.syntax.BaseFunction;
-import com.google.devtools.build.lib.syntax.BazelLibrary;
-import com.google.devtools.build.lib.syntax.BuildFileAST;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
+import com.google.devtools.build.lib.syntax.*;
 import com.google.devtools.build.lib.syntax.BuiltinFunction.Factory;
-import com.google.devtools.build.lib.syntax.ClassObject;
-import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.Environment.Extension;
 import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
 import com.google.devtools.build.lib.syntax.Environment.Phase;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.FuncallExpression;
-import com.google.devtools.build.lib.syntax.FunctionSignature;
 import com.google.devtools.build.lib.syntax.FunctionSignature.Shape;
-import com.google.devtools.build.lib.syntax.Mutability;
-import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
-import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.SkylarkSemantics;
-import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
-import com.google.devtools.build.lib.syntax.SkylarkType;
 import com.google.devtools.build.lib.vfs.Path;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -534,8 +521,53 @@ public class WorkspaceFactory {
                     + kwargs.get("name")
                     + "')");
           }
+          // add the remapping here? this works but it will do this for non-workspace rules too?
+          //i can either try and get the values from ast, or wait until after the rule is created
+
+          // this does not work because the name is not just "assignments" but it includes the value...
+//          String repoName = "";
+//          for (Argument.Passed passed : ast.getArguments()) {
+//            if (passed.getName().equals("name")) {
+//              repoName = passed.getValue().toString();
+//            }
+//            if (passed.getName().equals("assignments")) {
+//              List<DictionaryLiteral.DictionaryEntryLiteral> mappings =
+//                      ((DictionaryLiteral) passed.getValue()).getEntries();
+//              for (DictionaryLiteral.DictionaryEntryLiteral map : mappings) {
+//                builder.addWorkspaceAssignment(
+//                        RepositoryName.create(repoName),
+//                        RepositoryName.create(map.getKey().toString()),
+//                        RepositoryName.create(map.getValue().toString())
+//                );
+//              }
+//            }
+//          }
+//          builder.addWorkspaceAssignment(
+//                  RepositoryName.create("@a"),
+//                  RepositoryName.create("@b"),
+//                  RepositoryName.create("@c")
+//          );
+//          if (kwargs.)
+//          Map<String, String> assignments = (Map) kwargs.get("assignments");
+          if (kwargs.containsKey("assignments")) {
+            Map<String, String> map = (Map<String, String>) kwargs.get("assignments");
+            String externalRepoName = (String) kwargs.get("name");
+            Set<Map.Entry<String, String>> x = map.entrySet();
+            for (Map.Entry e : map.entrySet()) {
+              builder.addWorkspaceAssignment(
+                      RepositoryName.create("@" + externalRepoName),
+                      RepositoryName.create((String) e.getKey()),
+                      RepositoryName.create((String) e.getValue())
+              );
+
+            }
+            // remove assignments from kwargs
+            // THIS THROWS AN ERROR, SO I AM KEEPING ASSIGNMENTS AS AN ATTR OF LOCALREPOSITORYRULE
+//            kwargs.remove("assignments");
+          }
           RuleClass ruleClass = ruleFactory.getRuleClass(ruleClassName);
           RuleClass bindRuleClass = ruleFactory.getRuleClass("bind");
+
           Rule rule =
               WorkspaceFactoryHelper.createAndAddRepositoryRule(
                   builder, ruleClass, bindRuleClass, kwargs, ast);
@@ -543,6 +575,25 @@ public class WorkspaceFactory {
             throw new EvalException(
                 ast.getLocation(), rule + "'s name field must be a legal workspace name");
           }
+          AggregatingAttributeMapper mapper = AggregatingAttributeMapper.of(rule);
+//          if (mapper.has("assignments")) {
+//            Map<String, String> assignments =
+//                    AggregatingAttributeMapper.of(rule).get("assignments", Type.STRING_DICT);
+//          }
+//          Map<String, String> assignments =
+//                  AggregatingAttributeMapper.of(rule).get("assignments", Type.STRING_DICT);
+//          if (rule.getAttributeContainer().getAttr("assignments") != null) {
+//            System.out.println("this is for a breakpoint");
+//            if (rule.getAttributeContainer().getAttr("assignments") instanceof SingletonImmutableBiMap ) {
+//
+//            }
+//          }
+//          Map map = (Map) rule.getAttributeContainer().getAttr("assignments");
+//          Iterator it = map.entrySet().iterator();
+//          while (it.hasNext()) {
+//            Map.Entry pair = (Map.Entry)it.next();
+//            it.remove();
+//          }
         } catch (RuleFactory.InvalidRuleException
             | Package.NameConflictException
             | LabelSyntaxException e) {

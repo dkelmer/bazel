@@ -16,6 +16,7 @@ package com.google.devtools.build.lib.rules.repository;
 
 import static com.google.devtools.build.lib.packages.Attribute.attr;
 import static com.google.devtools.build.lib.syntax.Type.STRING;
+import static com.google.devtools.build.lib.syntax.Type.STRING_DICT;
 
 import com.google.devtools.build.lib.analysis.RuleDefinition;
 import com.google.devtools.build.lib.analysis.RuleDefinitionEnvironment;
@@ -41,6 +42,10 @@ public class LocalRepositoryRule implements RuleDefinition {
         <i>WORKSPACE</i> file.</p>
         <!-- #END_BLAZE_RULE.ATTRIBUTE --> */
         .add(attr("path", STRING).mandatory())
+        /* <!-- #BLAZE_RULE(local_repository).ATTRIBUTE(assignments) -->
+        A string dict of assignments for repository name reassignment
+        <!-- #END_BLAZE_RULE.ATTRIBUTE --> */
+        .add(attr("assignments", STRING_DICT))
         .setWorkspaceOnly()
         .build();
   }
