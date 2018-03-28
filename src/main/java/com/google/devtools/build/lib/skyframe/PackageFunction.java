@@ -422,6 +422,14 @@ public class PackageFunction implements SkyFunction {
     }
     String workspaceName = workspaceNameValue.getName();
 
+//    WorkspaceMappingsValue workspaceMappingsValue =
+//        (WorkspaceMappingsValue) env.getValue(WorkspaceMappingsValue.key());
+//    if(workspaceMappingsValue == null) {
+//      return null;
+//    }
+//    ImmutableMap<RepositoryName, RepositoryName> workspaceMappings =
+//        workspaceMappingsValue.getRemappings();
+
     SkyKey externalPackageKey = PackageValue.key(Label.EXTERNAL_PACKAGE_IDENTIFIER);
     PackageValue externalPackageValue = (PackageValue) env.getValue(externalPackageKey);
     if (externalPackageValue == null) {

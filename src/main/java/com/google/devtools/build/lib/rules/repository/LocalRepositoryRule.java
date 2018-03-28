@@ -45,7 +45,7 @@ public class LocalRepositoryRule implements RuleDefinition {
         /* <!-- #BLAZE_RULE(local_repository).ATTRIBUTE(assignments) -->
         A string dict of assignments for repository name reassignment
         <!-- #END_BLAZE_RULE.ATTRIBUTE --> */
-        .add(attr("assignments", STRING_DICT))
+        // .add(attr("assignments", STRING_DICT))
         .setWorkspaceOnly()
         .build();
   }

@@ -549,6 +549,7 @@ public class WorkspaceFactory {
 //          );
 //          if (kwargs.)
 //          Map<String, String> assignments = (Map) kwargs.get("assignments");
+          SkylarkDict dict = (SkylarkDict) kwargs;
           if (kwargs.containsKey("assignments")) {
             Map<String, String> map = (Map<String, String>) kwargs.get("assignments");
             String externalRepoName = (String) kwargs.get("name");
@@ -559,10 +560,11 @@ public class WorkspaceFactory {
                       RepositoryName.create((String) e.getKey()),
                       RepositoryName.create((String) e.getValue())
               );
-
             }
+            dict.remove("assignments", location, env.mutability());
             // remove assignments from kwargs
             // THIS THROWS AN ERROR, SO I AM KEEPING ASSIGNMENTS AS AN ATTR OF LOCALREPOSITORYRULE
+//            SkylarkDict d = (SkylarkDict) kwargs;
 //            kwargs.remove("assignments");
           }
           RuleClass ruleClass = ruleFactory.getRuleClass(ruleClassName);
