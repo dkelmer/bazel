@@ -369,6 +369,7 @@ java_library(
     visibility = ["//src/main/java/com/google/devtools/build/lib/skylarkinterface/processor:__pkg__"],
     deps = [
         ":skylark_semantics",
+        "//third_party:guava",
         "//third_party:jsr305",
     ],
 )

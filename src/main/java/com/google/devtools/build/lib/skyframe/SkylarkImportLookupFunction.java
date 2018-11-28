@@ -65,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
-import org.eclipse.jgit.lib.Repository;
 
 /**
  * A Skyframe function to look up and import a single Skylark extension.
@@ -269,6 +268,10 @@ public class SkylarkImportLookupFunction implements SkyFunction {
     Map<RepositoryName, RepositoryName> repoMapping =
         getRepositoryMapping(workspaceChunk, workspacePath, fileLabel, env);
 
+    if (repoMapping == null) {
+      return null;
+    }
+
     // Process the load statements in the file.
     ImmutableList<SkylarkImport> unRemappedImports = ast.getImports();
     ImmutableList<SkylarkImport> imports =
@@ -388,6 +391,12 @@ public class SkylarkImportLookupFunction implements SkyFunction {
       RootedPath workspacePath,
       Label enclosingFileLabel,
       Environment env) throws InterruptedException {
+
+
+    if (workspaceChunk == 0) {
+      return ImmutableMap.of();
+    }
+
     ImmutableMap<RepositoryName, RepositoryName> repositoryMapping;
 
     // We are fully done with workspace evaluation so we should get the mappings from the
@@ -505,7 +514,7 @@ public class SkylarkImportLookupFunction implements SkyFunction {
           ruleClassProvider
               .createSkylarkRuleClassEnvironment(
                   extensionLabel, mutability, skylarkSemantics,
-                  eventHandler, ast.getContentHashCode(), importMap);
+                  eventHandler, ast.getContentHashCode(), importMap, repoMapping);
       extensionEnv.setupOverride("native", packageFactory.getNativeModule(inWorkspace));
       execAndExport(ast, extensionLabel, eventHandler, extensionEnv);
 
