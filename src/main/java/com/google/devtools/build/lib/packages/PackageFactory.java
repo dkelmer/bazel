@@ -1628,6 +1628,7 @@ public final class PackageFactory {
               .build();
       SkylarkUtils.setPhase(pkgEnv, Phase.LOADING);
       SkylarkUtils.setToolsRepository(pkgEnv, ruleClassProvider.getToolsRepository());
+      SkylarkUtils.setRepositoryMapping(pkgEnv, repositoryMapping);
 
       pkgBuilder.setFilename(buildFilePath)
           .setDefaultVisibility(defaultVisibility)

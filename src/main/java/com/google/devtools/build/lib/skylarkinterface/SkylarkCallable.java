@@ -170,6 +170,8 @@ public @interface SkylarkCallable {
    */
   boolean useSkylarkSemantics() default false;
 
+  boolean useContext() default false;
+
   /**
    * If not NONE, the annotated method will only be callable if the given semantic flag is true.
    * Note that at most one of {@link #enableOnlyWithFlag} and {@link #disableWithFlag} can be

@@ -15,14 +15,18 @@
 package com.google.devtools.build.lib.syntax;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.devtools.build.lib.cmdline.BazelContext;
+import com.google.devtools.build.lib.cmdline.RepositoryName;
 import com.google.devtools.build.lib.events.Location;
+import java.util.Map;
 import java.util.Objects;
 
 /** This class contains Bazel-specific functions to extend or interoperate with Skylark. */
 public final class SkylarkUtils {
 
   /** Bazel-specific information that we store in the Environment. */
-  private static class BazelInfo {
+  private static class BazelInfo implements BazelContext {
+    Map<RepositoryName, RepositoryName> repoMapping;
     String toolsRepository;
     ImmutableMap<String, Class<?>> fragmentNameToClass;
 
@@ -36,19 +40,25 @@ public final class SkylarkUtils {
       }
       BazelInfo that = (BazelInfo) obj;
       return Objects.equals(this.toolsRepository, that.toolsRepository)
-          && Objects.equals(this.fragmentNameToClass, that.fragmentNameToClass);
+          && Objects.equals(this.fragmentNameToClass, that.fragmentNameToClass)
+          && Objects.equals(this.repoMapping, that.repoMapping);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(toolsRepository, fragmentNameToClass);
+      return Objects.hash(toolsRepository, fragmentNameToClass, repoMapping);
+    }
+
+    @Override
+    public ImmutableMap<RepositoryName, RepositoryName> getRepoRemapping() {
+      return ImmutableMap.copyOf(repoMapping);
     }
   }
 
   private static final String BAZEL_INFO_KEY = "$bazel";
   private static final String PHASE_KEY = "$phase";
 
-  private static BazelInfo getInfo(Environment env) {
+  public static BazelInfo getInfo(Environment env) {
     Object info = env.moduleLookup(BAZEL_INFO_KEY);
     if (info != null) {
       return (BazelInfo) info;
@@ -61,6 +71,11 @@ public final class SkylarkUtils {
     } catch (EvalException e) {
       throw new AssertionError(e);
     }
+  }
+
+  public static void setRepositoryMapping(Environment env,
+      Map<RepositoryName, RepositoryName> repoMapping) {
+    getInfo(env).repoMapping = repoMapping;
   }
 
   public static void setToolsRepository(Environment env, String toolsRepository) {
