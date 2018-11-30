@@ -30,6 +30,7 @@ import com.google.devtools.build.lib.packages.Attribute.SkylarkComputedDefaultTe
 import com.google.devtools.build.lib.packages.Attribute.SplitTransitionProvider;
 import com.google.devtools.build.lib.packages.AttributeValueSource;
 import com.google.devtools.build.lib.packages.BuildType;
+import com.google.devtools.build.lib.packages.BuildType.LabelConversionContext;
 import com.google.devtools.build.lib.packages.Provider;
 import com.google.devtools.build.lib.packages.SkylarkAspect;
 import com.google.devtools.build.lib.packages.SkylarkProviderIdentifier;
@@ -136,7 +137,8 @@ public final class SkylarkAttr implements SkylarkAttrApi {
       } else if (defaultValue instanceof SkylarkLateBoundDefault) {
         builder.value((SkylarkLateBoundDefault) defaultValue);
       } else {
-        builder.defaultValue(defaultValue, env.getGlobals().getLabel(), DEFAULT_ARG);
+        LabelConversionContext context = new LabelConversionContext(env.getGlobals().getLabel(), ImmutableMap.copyOf(SkylarkUtils.getRepositoryMapping(env)));
+        builder.defaultValue(defaultValue, context, DEFAULT_ARG);
       }
     }
 

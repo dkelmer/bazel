@@ -256,7 +256,12 @@ public final class BuildType {
     @Override
     public Label convert(Object x, Object what, Object context)
         throws ConversionException {
-      if (x instanceof Label) {
+      // WE GET STUCK HERE BECAUSE X IS ALREADY A LABEL, SO WE NEED TO CONVERT EVEN IF X IS A LABEL
+      // before we just checked if this was a label and then returned the label
+      // but in the case of default value, we do want to do a conversion, i.e. we don't necessarily
+      // trust the label. we got here from SkylarkAttr.createAttribute --> Attribute.defaultValue
+      // but this change is causing most other things to not resolve? 
+      if (x instanceof Label && !(context instanceof LabelConversionContext)) {
         return (Label) x;
       }
       try {
