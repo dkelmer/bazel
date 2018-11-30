@@ -529,11 +529,10 @@ public final class Label
         type = String.class,
         doc = "The label that will be resolved relative to this one."
       )
-    },
-    useContext = true
+    }
   )
-  public Label getRelative(String relName, BazelContext context) throws LabelSyntaxException {
-    return getRelativeWithRemapping(relName, context.getRepoRemapping());
+  public Label getRelative(String relName) throws LabelSyntaxException {
+    return getRelativeWithRemapping(relName, /* repositoryMapping= */ ImmutableMap.of());
   }
 
   /**

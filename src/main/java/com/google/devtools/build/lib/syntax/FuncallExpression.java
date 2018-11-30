@@ -466,8 +466,7 @@ public final class FuncallExpression extends Expression {
     Preconditions.checkArgument(
         !methodDescriptor.isUseEnvironment()
             || !methodDescriptor.isUseSkylarkSemantics()
-            || !methodDescriptor.isUseLocation()
-            || !methodDescriptor.isUseContext(),
+            || !methodDescriptor.isUseLocation(),
         "Cannot be invoked on structField callables with extra interpreter params");
     return methodDescriptor.call(obj, new Object[0], Location.BUILTIN, null);
   }
@@ -725,9 +724,6 @@ public final class FuncallExpression extends Expression {
     }
     if (method.isUseSkylarkSemantics()) {
       builder.add(env.getSemantics());
-    }
-    if (method.isUseContext()) {
-      builder.add(SkylarkUtils.getInfo(env));
     }
   }
 
