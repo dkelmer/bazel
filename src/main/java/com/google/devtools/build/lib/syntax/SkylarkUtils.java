@@ -25,7 +25,7 @@ import java.util.Objects;
 public final class SkylarkUtils {
 
   /** Bazel-specific information that we store in the Environment. */
-  private static class BazelInfo implements BazelContext {
+  private static class BazelInfo {
     Map<RepositoryName, RepositoryName> repoMapping;
     String toolsRepository;
     ImmutableMap<String, Class<?>> fragmentNameToClass;
@@ -49,10 +49,9 @@ public final class SkylarkUtils {
       return Objects.hash(toolsRepository, fragmentNameToClass, repoMapping);
     }
 
-    @Override
-    public ImmutableMap<RepositoryName, RepositoryName> getRepoRemapping() {
-      return ImmutableMap.copyOf(repoMapping);
-    }
+    // public ImmutableMap<RepositoryName, RepositoryName> getRepoRemapping() {
+    //   return ImmutableMap.copyOf(repoMapping);
+    // }
   }
 
   private static final String BAZEL_INFO_KEY = "$bazel";
@@ -76,6 +75,10 @@ public final class SkylarkUtils {
   public static void setRepositoryMapping(Environment env,
       Map<RepositoryName, RepositoryName> repoMapping) {
     getInfo(env).repoMapping = repoMapping;
+  }
+
+  public static Map<RepositoryName, RepositoryName> getRepositoryMapping(Environment env) {
+    return getInfo(env).repoMapping;
   }
 
   public static void setToolsRepository(Environment env, String toolsRepository) {
