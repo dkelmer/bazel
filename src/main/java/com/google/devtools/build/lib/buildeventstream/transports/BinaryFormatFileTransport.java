@@ -18,6 +18,7 @@ import com.google.devtools.build.lib.buildeventstream.ArtifactGroupNamer;
 import com.google.devtools.build.lib.buildeventstream.BuildEvent;
 import com.google.devtools.build.lib.buildeventstream.BuildEventArtifactUploader;
 import com.google.devtools.build.lib.buildeventstream.BuildEventProtocolOptions;
+import com.google.devtools.build.lib.buildeventstream.BuildEventServiceAbruptExitCallback;
 import com.google.devtools.build.lib.buildeventstream.BuildEventStreamProtos;
 import com.google.devtools.build.lib.buildeventstream.BuildEventTransport;
 import com.google.protobuf.CodedOutputStream;
@@ -34,8 +35,9 @@ public final class BinaryFormatFileTransport extends FileTransport {
       BufferedOutputStream outputStream,
       BuildEventProtocolOptions options,
       BuildEventArtifactUploader uploader,
+      BuildEventServiceAbruptExitCallback abruptExitCallback,
       ArtifactGroupNamer namer) {
-    super(outputStream, options, uploader, namer);
+    super(outputStream, options, uploader, abruptExitCallback, namer);
   }
 
   @Override

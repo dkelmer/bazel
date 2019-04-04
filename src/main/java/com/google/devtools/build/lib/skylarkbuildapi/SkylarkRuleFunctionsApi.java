@@ -51,42 +51,46 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
           + "provider is represented by its string name instead.";
 
   @SkylarkCallable(
-      name = "provider",
-      doc =
-          "Creates a declared provider 'constructor'. The return value of this "
-              + "function can be used to create \"struct-like\" values. Example:<br>"
-              + "<pre class=\"language-python\">data = provider()\n"
-              + "d = data(x = 2, y = 3)\n"
-              + "print(d.x + d.y) # prints 5</pre>",
-      parameters = {
-        @Param(
-            name = "doc",
-            type = String.class,
-            named = true,
-            defaultValue = "''",
-            doc =
-                "A description of the provider that can be extracted by documentation generating"
-                    + " tools."),
-        @Param(
-            name = "fields",
-            doc =
-                "If specified, restricts the set of allowed fields. <br>Possible values are:<ul> "
-                    + " <li> list of fields:<br>       <pre"
-                    + " class=\"language-python\">provider(fields = ['a', 'b'])</pre><p>  <li>"
-                    + " dictionary field name -> documentation:<br>       <pre"
-                    + " class=\"language-python\">provider(\n"
-                    + "       fields = { 'a' : 'Documentation for a', 'b' : 'Documentation for b'"
-                    + " })</pre></ul>All fields are optional.",
-            allowedTypes = {
-              @ParamType(type = SkylarkList.class, generic1 = String.class),
-              @ParamType(type = SkylarkDict.class)
-            },
-            noneable = true,
-            named = true,
-            positional = false,
-            defaultValue = "None")
-      },
-      useLocation = true)
+    name = "provider",
+    doc =
+        "Creates a declared provider 'constructor'. The return value of this "
+            + "function can be used to create \"struct-like\" values. Example:<br>"
+            + "<pre class=\"language-python\">data = provider()\n"
+            + "d = data(x = 2, y = 3)\n"
+            + "print(d.x + d.y) # prints 5</pre>",
+    parameters = {
+      @Param(
+        name = "doc",
+        type = String.class,
+        legacyNamed = true,
+        defaultValue = "''",
+        doc =
+            "A description of the provider that can be extracted by documentation generating tools."
+      ),
+      @Param(
+        name = "fields",
+        doc = "If specified, restricts the set of allowed fields. <br>"
+            + "Possible values are:"
+            + "<ul>"
+            + "  <li> list of fields:<br>"
+            + "       <pre class=\"language-python\">provider(fields = ['a', 'b'])</pre><p>"
+            + "  <li> dictionary field name -> documentation:<br>"
+            + "       <pre class=\"language-python\">provider(\n"
+            + "       fields = { 'a' : 'Documentation for a', 'b' : 'Documentation for b' })</pre>"
+            + "</ul>"
+            + "All fields are optional.",
+        allowedTypes = {
+            @ParamType(type = SkylarkList.class, generic1 = String.class),
+            @ParamType(type = SkylarkDict.class)
+        },
+        noneable = true,
+        named = true,
+        positional = false,
+        defaultValue = "None"
+      )
+    },
+    useLocation = true
+  )
   public ProviderApi provider(String doc, Object fields, Location location) throws EvalException;
 
   @SkylarkCallable(
@@ -102,7 +106,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "implementation",
             type = BaseFunction.class,
-            named = true,
+            legacyNamed = true,
             doc =
                 "the function implementing this rule, must have exactly one parameter: "
                     + "<a href=\"ctx.html\">ctx</a>. The function is called during the analysis "
@@ -112,7 +116,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "test",
             type = Boolean.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "False",
             doc =
                 "Whether this rule is a test rule, that is, whether it may be the subject of a "
@@ -125,7 +129,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "attrs",
             type = SkylarkDict.class,
-            named = true,
+            legacyNamed = true,
             noneable = true,
             defaultValue = "None",
             doc =
@@ -145,7 +149,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
               @ParamType(type = NoneType.class),
               @ParamType(type = BaseFunction.class)
             },
-            named = true,
+            legacyNamed = true,
             callbackEnabled = true,
             noneable = true,
             defaultValue = "None",
@@ -202,7 +206,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "executable",
             type = Boolean.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "False",
             doc =
                 "Whether this rule is considered executable, that is, whether it may be the "
@@ -212,7 +216,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "output_to_genfiles",
             type = Boolean.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "False",
             doc =
                 "If true, the files will be generated in the genfiles directory instead of the "
@@ -221,7 +225,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "fragments",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -230,7 +234,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "host_fragments",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -239,7 +243,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "_skylark_testable",
             type = Boolean.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "False",
             doc =
                 "<i>(Experimental)</i><br/><br/>"
@@ -253,7 +257,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "toolchains",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -264,7 +268,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "doc",
             type = String.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "''",
             doc =
                 "A description of the rule that can be extracted by documentation generating "
@@ -374,7 +378,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "implementation",
             type = BaseFunction.class,
-            named = true,
+            legacyNamed = true,
             doc =
                 "the function implementing this aspect. Must have two parameters: "
                     + "<a href=\"Target.html\">Target</a> (the target to which the aspect is "
@@ -384,7 +388,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "attr_aspects",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -395,7 +399,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "attrs",
             type = SkylarkDict.class,
-            named = true,
+            legacyNamed = true,
             noneable = true,
             defaultValue = "None",
             doc =
@@ -411,7 +415,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "required_aspect_providers",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "[]",
             doc =
                 "Allow the aspect to inspect other aspects. If the aspect propagates along a"
@@ -425,13 +429,13 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "provides",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "[]",
             doc = PROVIDES_DOC),
         @Param(
             name = "fragments",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -440,7 +444,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "host_fragments",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -449,7 +453,7 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "toolchains",
             type = SkylarkList.class,
-            named = true,
+            legacyNamed = true,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -460,14 +464,15 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
         @Param(
             name = "doc",
             type = String.class,
-            named = true,
+            legacyNamed = true,
             defaultValue = "''",
             doc =
                 "A description of the aspect that can be extracted by documentation generating "
                     + "tools.")
       },
       useEnvironment = true,
-      useAst = true)
+      useAst = true,
+      useContext = true)
   public SkylarkAspectApi aspect(
       BaseFunction implementation,
       SkylarkList<?> attributeAspects,
@@ -479,7 +484,8 @@ public interface SkylarkRuleFunctionsApi<FileApiT extends FileApi> {
       SkylarkList<?> toolchains,
       String doc,
       FuncallExpression ast,
-      Environment funcallEnv)
+      Environment funcallEnv,
+      StarlarkContext context)
       throws EvalException;
 
   @SkylarkCallable(

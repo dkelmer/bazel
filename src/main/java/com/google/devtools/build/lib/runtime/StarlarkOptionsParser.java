@@ -159,6 +159,7 @@ public class StarlarkOptionsParser {
       }
       parsedOptions.put(loadedFlag, value);
     }
+    // TODO(juliexxia): change this method to setStarlarkOptions
     nativeOptionsParser.setStarlarkOptions(parsedOptions.build());
   }
 

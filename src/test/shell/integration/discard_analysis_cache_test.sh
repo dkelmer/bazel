@@ -80,20 +80,17 @@ EOF
 
 function test_compile_helloworld() {
   write_hello_world_files
-  bazel run --noexperimental_ui --discard_analysis_cache hello:hello >&$TEST_log \
+  bazel run --discard_analysis_cache hello:hello >&$TEST_log \
       || fail "Build failed"
-  expect_log "Loading package: hello"
   expect_log 'hello!'
 
-  bazel run --noexperimental_ui --discard_analysis_cache hello:hello >&$TEST_log \
+  bazel run --discard_analysis_cache hello:hello >&$TEST_log \
       || fail "Build failed"
-  expect_not_log "Loading package: hello"
   expect_log 'hello!'
 
   # Check that further incremental builds work fine.
-  bazel run --noexperimental_ui hello:hello >&$TEST_log \
+  bazel run hello:hello >&$TEST_log \
       || fail "Build failed"
-  expect_not_log "Loading package: hello"
   expect_log 'hello!'
 }
 

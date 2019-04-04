@@ -32,6 +32,7 @@ import com.google.devtools.build.lib.buildeventservice.client.BuildEventServiceC
 import com.google.devtools.build.lib.buildeventstream.AnnounceBuildEventTransportsEvent;
 import com.google.devtools.build.lib.buildeventstream.BuildEventArtifactUploader;
 import com.google.devtools.build.lib.buildeventstream.BuildEventProtocolOptions;
+import com.google.devtools.build.lib.buildeventstream.BuildEventServiceAbruptExitCallback;
 import com.google.devtools.build.lib.buildeventstream.BuildEventStreamProtos.Aborted.AbortReason;
 import com.google.devtools.build.lib.buildeventstream.BuildEventTransport;
 import com.google.devtools.build.lib.buildeventstream.BuildEventTransportClosedEvent;
@@ -108,6 +109,17 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
 
   protected BESOptionsT besOptions;
 
+  /** Callback used by the transports to report errors and possible exit abruptly. */
+  protected BuildEventServiceAbruptExitCallback getAbruptExitCallback(
+      ModuleEnvironment moduleEnvironment) {
+    return (e) -> {
+      // Request exiting early for the first abrupt exception we find.
+      if (this.pendingAbruptExitException.compareAndSet(null, e)) {
+        moduleEnvironment.exit(pendingAbruptExitException.get());
+      }
+    };
+  }
+
   protected void reportCommandLineError(EventHandler commandLineReporter, Exception exception) {
     // Don't hide unchecked exceptions as part of the error reporting.
     Throwables.throwIfUnchecked(exception);
@@ -147,6 +159,19 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
   }
 
   private void waitForPreviousInvocation() {
+    AbruptExitException pendingException = pendingAbruptExitException.getAndSet(null);
+    if (pendingException != null) {
+      cmdLineReporter.handle(
+          Event.warn(
+              String.format(
+                  "Previous invocation failed to finish Build Event Protocol upload with "
+                      + "the following exception: '%s'. "
+                      + "Ignoring the failure and starting a new invocation...",
+                  pendingException.getMessage())));
+      cancelPendingUploads();
+      return;
+    }
+
     if (closeFuturesMap.isEmpty()) {
       return;
     }
@@ -169,8 +194,8 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
     } catch (ExecutionException exception) {
       String msg =
           String.format(
-              "Previous invocation failed to finish Build Event Protocol upload "
-                  + "with the following exception: '%s'. "
+              "Previous Build Event Protocol upload failed with "
+                  + "the following exception: '%s'. "
                   + "Ignoring the failure and starting a new invocation...",
               exception.getMessage());
       cmdLineReporter.handle(Event.warn(msg));
@@ -208,10 +233,6 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
                     .select(bepOptions.buildEventUploadStrategy)
                     .create(cmdEnv));
 
-    // We need to wait for the previous invocation before we check the whitelist of commands to
-    // allow completing previous runs using BES, for example:
-    //   bazel build (..run with async BES..)
-    //   bazel info <-- Doesn't run with BES unless we wait before cheking the whitelist.
     waitForPreviousInvocation();
 
     if (!whitelistedCommands(besOptions).contains(cmdEnv.getCommandName())) {
@@ -328,7 +349,7 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
                 + "s."));
   }
 
-  private void waitForBuildEventTransportsToClose() throws AbruptExitException {
+  private void waitForBuildEventTransportsToClose() {
     final ScheduledExecutorService executor =
         Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("bes-notify-ui-%d").build());
@@ -361,17 +382,23 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
         Uninterruptibles.getUninterruptibly(Futures.allAsList(closeFuturesMap.values()));
       }
     } catch (ExecutionException e) {
-      Throwables.throwIfInstanceOf(e.getCause(), AbruptExitException.class);
-      throw new RuntimeException(
-          String.format(
-              "Unexpected Exception '%s' when closing BEP transports, this is a bug.",
-              e.getCause().getMessage()));
+      this.pendingAbruptExitException.compareAndSet(
+          null,
+          new AbruptExitException(
+              String.format(
+                  "Failed to close a build event transport with exception '%s'", e.getMessage()),
+              ExitCode.TRANSIENT_BUILD_EVENT_SERVICE_UPLOAD_ERROR,
+              e));
     } finally {
       cancelPendingUploads();
+
       if (waitMessageFuture != null) {
         waitMessageFuture.cancel(/* mayInterruptIfRunning= */ true);
       }
-      executor.shutdown();
+
+      if (executor != null) {
+        executor.shutdown();
+      }
     }
   }
 
@@ -380,6 +407,10 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
     switch (besOptions.besUploadMode) {
       case WAIT_FOR_UPLOAD_COMPLETE:
         waitForBuildEventTransportsToClose();
+        AbruptExitException e = pendingAbruptExitException.getAndSet(null);
+        if (e != null) {
+          throw e;
+        }
         return;
 
       case NOWAIT_FOR_UPLOAD_COMPLETE:
@@ -498,6 +529,7 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
         .artifactGroupNamer(artifactGroupNamer)
         .bepOptions(bepOptions)
         .clock(cmdEnv.getRuntime().getClock())
+        .abruptExitCallback(getAbruptExitCallback(cmdEnv.getBlazeModuleEnvironment()))
         .eventBus(cmdEnv.getEventBus())
         .build();
   }
@@ -523,6 +555,7 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
                 bepTextOutputStream,
                 bepOptions,
                 localFileUploader,
+                getAbruptExitCallback(cmdEnv.getBlazeModuleEnvironment()),
                 artifactGroupNamer));
       } catch (IOException exception) {
         // TODO(b/125216340): Consider making this a warning instead of an error once the
@@ -553,6 +586,7 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
                 bepBinaryOutputStream,
                 bepOptions,
                 localFileUploader,
+                getAbruptExitCallback(cmdEnv.getBlazeModuleEnvironment()),
                 artifactGroupNamer));
       } catch (IOException exception) {
         // TODO(b/125216340): Consider making this a warning instead of an error once the
@@ -582,6 +616,7 @@ public abstract class BuildEventServiceModule<BESOptionsT extends BuildEventServ
                 bepJsonOutputStream,
                 bepOptions,
                 localFileUploader,
+                getAbruptExitCallback(cmdEnv.getBlazeModuleEnvironment()),
                 artifactGroupNamer));
       } catch (IOException exception) {
         // TODO(b/125216340): Consider making this a warning instead of an error once the

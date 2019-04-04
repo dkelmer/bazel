@@ -21,6 +21,7 @@ import com.google.devtools.build.lib.buildeventstream.ArtifactGroupNamer;
 import com.google.devtools.build.lib.buildeventstream.BuildEvent;
 import com.google.devtools.build.lib.buildeventstream.BuildEventContext;
 import com.google.devtools.build.lib.buildeventstream.BuildEventProtocolOptions;
+import com.google.devtools.build.lib.buildeventstream.BuildEventServiceAbruptExitCallback;
 import com.google.devtools.build.lib.buildeventstream.BuildEventStreamProtos;
 import com.google.devtools.build.lib.buildeventstream.BuildEventStreamProtos.BuildStarted;
 import com.google.devtools.build.lib.buildeventstream.LocalFilesArtifactUploader;
@@ -53,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 public class JsonFormatFileTransportTest {
   private final BuildEventProtocolOptions defaultOpts =
       Options.getDefaults(BuildEventProtocolOptions.class);
+  private static final BuildEventServiceAbruptExitCallback NO_OP_EXIT_CALLBACK = (e) -> {};
 
   @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
@@ -87,6 +89,7 @@ public class JsonFormatFileTransportTest {
             outputStream,
             defaultOpts,
             new LocalFilesArtifactUploader(),
+            NO_OP_EXIT_CALLBACK,
             artifactGroupNamer);
     transport.sendBuildEvent(buildEvent);
 
@@ -161,6 +164,7 @@ public class JsonFormatFileTransportTest {
             outputStream,
             defaultOpts,
             new LocalFilesArtifactUploader(),
+            NO_OP_EXIT_CALLBACK,
             artifactGroupNamer);
     WrappedOutputStream out = new WrappedOutputStream(transport.writer.out);
     transport.writer.out = out;
