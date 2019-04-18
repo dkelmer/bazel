@@ -400,6 +400,7 @@ public class SkylarkRuleClassFunctions implements SkylarkRuleFunctionsApi<Artifa
       builder.addExecutionPlatformConstraints(
           collectConstraintLabels(
               execCompatibleWith.getContents(String.class, "exec_compatile_with"),
+              bazelContext.getRepoMapping(),
               ast.getLocation()));
     }
     if (executionPlatformConstraintsAllowed) {
@@ -454,11 +455,11 @@ public class SkylarkRuleClassFunctions implements SkylarkRuleFunctionsApi<Artifa
   }
 
   private static ImmutableList<Label> collectConstraintLabels(
-      Iterable<String> rawLabels, Location loc) throws EvalException {
+      Iterable<String> rawLabels, ImmutableMap<RepositoryName, RepositoryName> repoMapping, Location loc) throws EvalException {
     ImmutableList.Builder<Label> constraintLabels = new ImmutableList.Builder<>();
     for (String rawLabel : rawLabels) {
       try {
-        Label constraintLabel = Label.parseAbsolute(rawLabel, ImmutableMap.of());
+        Label constraintLabel = Label.parseAbsolute(rawLabel, repoMapping);
         constraintLabels.add(constraintLabel);
       } catch (LabelSyntaxException e) {
         throw new EvalException(
