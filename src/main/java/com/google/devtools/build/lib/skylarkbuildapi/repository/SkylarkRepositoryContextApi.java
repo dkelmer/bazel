@@ -335,6 +335,18 @@ public interface SkylarkRepositoryContextApi<RepositoryFunctionExceptionT extend
             named = true,
             doc = "set the executable flag on the created file, false by default."),
         @Param(
+            name = "netrc_file_path",
+            type = String.class,
+            defaultValue = "'/'",
+            named = true,
+            doc = "path for the netrc file"),
+        @Param(
+            name = "netrc_domain_auth_types",
+            type = SkylarkDict.class,
+            defaultValue = "{}",
+            named = true,
+            doc = "the authorization type for each 'machine' in netrc file. For now supports 'github'"),
+        @Param(
             name = "allow_fail",
             type = Boolean.class,
             defaultValue = "False",
@@ -472,7 +484,7 @@ public interface SkylarkRepositoryContextApi<RepositoryFunctionExceptionT extend
             defaultValue = "{}",
             named = true,
             doc = "the authorization type for each 'machine' in netrc file. For now supports 'github'"),
-		@Param(
+		    @Param(
             name = "allow_fail",
             type = Boolean.class,
             defaultValue = "False",

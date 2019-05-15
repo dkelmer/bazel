@@ -252,27 +252,26 @@ function test_auth() {
   startup_auth_server
   create_artifact thing amabop 1.9
   cat > WORKSPACE <<EOF
-maven_server(
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "jvm_maven_import_external")
+# maven_server(
+#     name = "x",
+#     url = "http://127.0.0.1:$fileserver_port/",
+#     settings_file = "settings.xml",
+# )
+
+
+jvm_maven_import_external(
     name = "x",
-    url = "http://127.0.0.1:$fileserver_port/",
-    settings_file = "settings.xml",
-)
+    urls = ["http://127.0.0.1:$fileserver_port/"],
+    )
+
 maven_jar(
     name = "good_auth",
     artifact = "thing:amabop:1.9",
     server = "x",
 )
 
-maven_server(
-    name = "y",
-    url = "http://127.0.0.1:$fileserver_port/",
-    settings_file = "settings.xml",
-)
-maven_jar(
-    name = "bad_auth",
-    artifact = "thing:amabop:1.9",
-    server = "y",
-)
+
 EOF
 
   cat > settings.xml <<EOF
