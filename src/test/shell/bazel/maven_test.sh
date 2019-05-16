@@ -53,33 +53,14 @@ public class BallPit {
 EOF
 }
 
-# function test_jvm_maven_import_external() {
-#   setup_zoo
-#   serve_artifact com.example.carnivore carnivore 1.23
-
-#   echo "IN TEST"
-#   echo "sha1 $sha1"
-#   echo "sha256 $sha256"
-
-#   cat > WORKSPACE <<EOF
-# load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
-# jvm_maven_import_external(
-#     name = 'endangered',
-#     artifact = "com.example.carnivore:carnivore:1.23",
-#     server_urls = ['http://127.0.0.1:$fileserver_port/',],
-#     artifact_sha256 = '$sha256',
-#     srcjar_sha256 = '$sha256_src',
-#     licenses = ["unencumbered"],
-# )
-# EOF
-
-#   bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
-#   expect_log "Tra-la!"
-# }
-
-function test_jvm_maven_import_external_no_sha256_src() {
+function test_jvm_maven_import_external() {
   setup_zoo
   serve_artifact com.example.carnivore carnivore 1.23
+
+  echo "IN TEST"
+  echo "sha1 $sha1"
+  echo "sha256 $sha256"
+  echo "sha256_src $sha256_src"
 
   cat > WORKSPACE <<EOF
 load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
@@ -88,6 +69,7 @@ jvm_maven_import_external(
     artifact = "com.example.carnivore:carnivore:1.23",
     server_urls = ['http://127.0.0.1:$fileserver_port/',],
     artifact_sha256 = '$sha256',
+    srcjar_sha256 = '$sha256_src',
     licenses = ["unencumbered"],
 )
 EOF
@@ -96,10 +78,7 @@ EOF
   expect_log "Tra-la!"
 }
 
-# # makes sure both jar and srcjar are downloaded
-# function test_jvm_maven_import_external_downloads() {
-
- 
+# function test_jvm_maven_import_external_no_sha256_src() {
 #   setup_zoo
 #   serve_artifact com.example.carnivore carnivore 1.23
 
@@ -110,21 +89,53 @@ EOF
 #     artifact = "com.example.carnivore:carnivore:1.23",
 #     server_urls = ['http://127.0.0.1:$fileserver_port/',],
 #     artifact_sha256 = '$sha256',
-#     srcjar_urls = ['http://127.0.0.1:$fileserver_port/',],
-#     # this isn't the right checksum but idk why
-#     # srcjar_sha256 = '$sha256_src',
 #     licenses = ["unencumbered"],
 # )
 # EOF
 
 #   bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
-
-#   output_base="$(bazel info output_base)"
-#   test -e "${output_base}/external/endangered/carnivore-1.23.jar" \
-#     || fail "jar not downloaded to expected place"
-#   test -e "${output_base}/external/endangered/carnivore-1.23-sources.jar" \
-#     || fail "srcjar not downloaded to expected place"
+#   expect_log "Tra-la!"
 # }
+
+# makes sure both jar and srcjar are downloaded
+function test_jvm_maven_import_external_downloads() { 
+  setup_zoo
+  serve_artifact com.example.carnivore carnivore 1.23
+
+
+  echo "sha256_src $sha256_src"
+
+  cat > WORKSPACE <<EOF
+load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+jvm_maven_import_external(
+    name = 'endangered',
+    artifact = "com.example.carnivore:carnivore:1.23",
+    server_urls = ['http://127.0.0.1:$fileserver_port/',],
+    artifact_sha256 = '$sha256',
+    srcjar_urls = ['http://127.0.0.1:$fileserver_port/',],
+    # this isn't the right checksum but idk why
+    srcjar_sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    licenses = ["unencumbered"],
+)
+EOF
+
+  bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
+
+  output_base="$(bazel info output_base)"
+
+  echo "CONTENTS OF OUTPUT BASE EXTERNAL"
+  ls "${output_base}/external/endangered"
+  echo ""
+  echo ""
+  echo "contents of srcjar"
+  jar tf "${output_base}/external/endangered/endangered-src.jar"
+
+
+  test -e "${output_base}/external/endangered/carnivore-1.23.jar" \
+    || fail "jar not downloaded to expected place"
+  test -e "${output_base}/external/endangered/endangered-src.jar" \
+    || fail "srcjar not downloaded to expected place"
+}
 
 function test_jvm_maven_import_external_404() {
   setup_zoo
@@ -261,28 +272,20 @@ EOF
 function test_auth() {
   startup_auth_server
   create_artifact thing amabop 1.9
+  
+  local netrc_path=$TEST_TMPDIR/.netrc
+  echo "machine 127.0.0.1 login foo password bar" > $netrc_path
+  
   cat > WORKSPACE <<EOF
 load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
-maven_server(
-    name = "x",
-    url = "http://127.0.0.1:$fileserver_port/",
-    settings_file = "settings.xml",
-)
-jvm_maven_import_external(
-    name = "good_auth",
-    artifact = "thing:amabop:1.9",
-    server = "x",
-)
 
-maven_server(
-    name = "y",
-    url = "http://127.0.0.1:$fileserver_port/",
-    settings_file = "settings.xml",
-)
 jvm_maven_import_external(
-    name = "bad_auth",
+    name = 'good_auth',
     artifact = "thing:amabop:1.9",
-    server = "y",
+    server_urls = ['http://127.0.0.1:$fileserver_port/',],
+    artifact_sha256 = '$sha256',
+    licenses = ["unencumbered"],
+    netrc_file_path = '$netrc_path'
 )
 EOF
 

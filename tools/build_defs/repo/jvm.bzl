@@ -57,6 +57,7 @@ def _jvm_import_external(repository_ctx):
     extension = repository_ctx.attr.rule_metadata["extension"]
     file_extension = "." + extension
     path = repository_ctx.name + file_extension
+    netrc = repository_ctx.attr.netrc_file_path
     for url in urls:
         if url.endswith(file_extension):
             path = url[url.rindex("/") + 1:]
@@ -106,7 +107,7 @@ def _jvm_import_external(repository_ctx):
         lines.append(extra)
         if not extra.endswith("\n"):
             lines.append("")
-    repository_ctx.download(urls, path, sha)
+    repository_ctx.download(urls, path, sha, True, netrc)
     if srcurls and _should_fetch_sources_in_current_env(repository_ctx):
         repository_ctx.download(srcurls, srcpath, srcsha)
     repository_ctx.file("BUILD", "\n".join(lines))
@@ -228,6 +229,9 @@ jvm_import_external = repository_rule(
         "generated_linkable_rule_name": attr.string(),
         "default_visibility": attr.string_list(default = ["//visibility:public"]),
         "extra_build_file_content": attr.string(),
+        "netrc_file_path": attr.string(
+            doc = "The file path for the location of .netrc file path. Default will be a user home directory"
+    ),
     },
     environ = [_FETCH_SOURCES_ENV_VAR],
     implementation = _jvm_import_external,
