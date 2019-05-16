@@ -414,6 +414,8 @@ public class SkylarkRepositoryContext
       Object output,
       String sha256,
       Boolean executable,
+      String netrcFilePath,
+      Map<String, String> netrcDomainAuthTypes,
       Boolean allowFail,
       Location location)
       throws RepositoryFunctionException, EvalException, InterruptedException {

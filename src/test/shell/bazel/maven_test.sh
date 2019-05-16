@@ -18,6 +18,7 @@
 #
 
 set -euo pipefail
+# set -x
 
 # Load the test setup defined in the parent directory
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,17 +53,42 @@ public class BallPit {
 EOF
 }
 
-function test_maven_jar() {
+# function test_jvm_maven_import_external() {
+#   setup_zoo
+#   serve_artifact com.example.carnivore carnivore 1.23
+
+#   echo "IN TEST"
+#   echo "sha1 $sha1"
+#   echo "sha256 $sha256"
+
+#   cat > WORKSPACE <<EOF
+# load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+# jvm_maven_import_external(
+#     name = 'endangered',
+#     artifact = "com.example.carnivore:carnivore:1.23",
+#     server_urls = ['http://127.0.0.1:$fileserver_port/',],
+#     artifact_sha256 = '$sha256',
+#     srcjar_sha256 = '$sha256_src',
+#     licenses = ["unencumbered"],
+# )
+# EOF
+
+#   bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
+#   expect_log "Tra-la!"
+# }
+
+function test_jvm_maven_import_external_no_sha256_src() {
   setup_zoo
   serve_artifact com.example.carnivore carnivore 1.23
 
   cat > WORKSPACE <<EOF
-maven_jar(
+load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+jvm_maven_import_external(
     name = 'endangered',
     artifact = "com.example.carnivore:carnivore:1.23",
-    repository = 'http://127.0.0.1:$fileserver_port/',
-    sha1 = '$sha1',
-    sha1_src = '$sha1_src',
+    server_urls = ['http://127.0.0.1:$fileserver_port/',],
+    artifact_sha256 = '$sha256',
+    licenses = ["unencumbered"],
 )
 EOF
 
@@ -70,208 +96,194 @@ EOF
   expect_log "Tra-la!"
 }
 
-function test_maven_jar_no_sha1_src() {
-  setup_zoo
-  serve_artifact com.example.carnivore carnivore 1.23
+# # makes sure both jar and srcjar are downloaded
+# function test_jvm_maven_import_external_downloads() {
 
-  cat > WORKSPACE <<EOF
-maven_jar(
-    name = 'endangered',
-    artifact = "com.example.carnivore:carnivore:1.23",
-    repository = 'http://127.0.0.1:$fileserver_port/',
-    sha1 = '$sha1',
-)
-EOF
+ 
+#   setup_zoo
+#   serve_artifact com.example.carnivore carnivore 1.23
 
-  bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
-  expect_log "Tra-la!"
-}
+#   cat > WORKSPACE <<EOF
+# load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+# jvm_maven_import_external(
+#     name = 'endangered',
+#     artifact = "com.example.carnivore:carnivore:1.23",
+#     server_urls = ['http://127.0.0.1:$fileserver_port/',],
+#     artifact_sha256 = '$sha256',
+#     srcjar_urls = ['http://127.0.0.1:$fileserver_port/',],
+#     # this isn't the right checksum but idk why
+#     # srcjar_sha256 = '$sha256_src',
+#     licenses = ["unencumbered"],
+# )
+# EOF
 
-# Same as test_maven_jar, except omit sha1 implying "we don't care".
-function test_maven_jar_no_sha1() {
-  setup_zoo
-  serve_artifact com.example.carnivore carnivore 1.23
+#   bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
 
-  cat > WORKSPACE <<EOF
-maven_jar(
-    name = 'endangered',
-    artifact = "com.example.carnivore:carnivore:1.23",
-    repository = 'http://127.0.0.1:$fileserver_port/',
-)
-EOF
+#   output_base="$(bazel info output_base)"
+#   test -e "${output_base}/external/endangered/carnivore-1.23.jar" \
+#     || fail "jar not downloaded to expected place"
+#   test -e "${output_base}/external/endangered/carnivore-1.23-sources.jar" \
+#     || fail "srcjar not downloaded to expected place"
+# }
 
-  bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
-  expect_log "Tra-la!"
-}
-
-# makes sure both jar and srcjar are downloaded
-function test_maven_jar_downloads() {
-  setup_zoo
-  serve_artifact com.example.carnivore carnivore 1.23
-
-  cat > WORKSPACE <<EOF
-maven_jar(
-    name = 'endangered',
-    artifact = "com.example.carnivore:carnivore:1.23",
-    repository = 'http://127.0.0.1:$fileserver_port/',
-)
-EOF
-
-  bazel run //zoo:ball-pit >& $TEST_log || fail "Expected run to succeed"
-  output_base="$(bazel info output_base)"
-  test -e "${output_base}/external/endangered/jar/carnivore-1.23.jar" \
-    || fail "jar not downloaded to expected place"
-  test -e "${output_base}/external/endangered/jar/carnivore-1.23-sources.jar" \
-    || fail "srcjar not downloaded to expected place"
-}
-
-function test_maven_jar_404() {
+function test_jvm_maven_import_external_404() {
   setup_zoo
   serve_not_found
 
+  fake_sha256="8dcb585869803beb21b3d9fd61f453d30b1b58cad1d1d89a6853d2ab16e57666"
+
   cat > WORKSPACE <<EOF
-maven_jar(
+load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+jvm_maven_import_external(
     name = 'endangered',
     artifact = "com.example.carnivore:carnivore:1.23",
-    repository = 'http://127.0.0.1:$nc_port/',
+    server_urls = ['http://127.0.0.1:$nc_port/',],
+    artifact_sha256 = '$fake_sha256',
+    licenses = ["unencumbered"],
 )
 EOF
 
   bazel clean --expunge
   bazel build //zoo:ball-pit >& $TEST_log && echo "Expected build to fail"
   kill_nc
-  expect_log "Failed to fetch Maven dependency: Could not find artifact"
+  # expect_log "Failed to fetch Maven dependency: Could not find artifact"
 }
 
-function test_maven_jar_mismatched_sha1() {
-  setup_zoo
-  serve_artifact com.example.carnivore carnivore 1.23
+# function test_jvm_maven_import_external_mismatched_sha256() {
+#   setup_zoo
+#   serve_artifact com.example.carnivore carnivore 1.23
 
-  wrong_sha1="0123456789012345678901234567890123456789"
-  cat > WORKSPACE <<EOF
-maven_jar(
-    name = 'endangered',
-    artifact = "com.example.carnivore:carnivore:1.23",
-    repository = 'http://127.0.0.1:$fileserver_port/',
-    sha1 = '$wrong_sha1',
-)
-EOF
+#   wrong_sha1="0123456789012345678901234567890123456789"
+#   cat > WORKSPACE <<EOF
+# load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+# jvm_maven_import_external(
+#     name = 'endangered',
+#     artifact = "com.example.carnivore:carnivore:1.23",
+#     server_urls = ['http://127.0.0.1:$fileserver_port/',],
+#     artifact_sha256 = '$wrong_sha1',
+#     licenses = ["unencumbered"],
+# )
+# EOF
 
-  bazel fetch //zoo:ball-pit >& $TEST_log && echo "Expected fetch to fail"
-  expect_log "has SHA-1 of $sha1, does not match expected SHA-1 ($wrong_sha1)"
-}
+#   bazel fetch //zoo:ball-pit >& $TEST_log && echo "Expected fetch to fail"
+#   expect_log "has SHA-1 of $sha1, does not match expected SHA-1 ($wrong_sha1)"
+# }
 
-function test_default_repository() {
-  serve_artifact thing amabop 1.9
-  cat > WORKSPACE <<EOF
-maven_server(
-    name = "default",
-    url = "http://127.0.0.1:$fileserver_port/",
-)
+# function disable_test_default_repository() {
+#   serve_artifact thing amabop 1.9
+#   cat > WORKSPACE <<EOF
+# load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+# maven_server(
+#     name = "default",
+#     url = "http://127.0.0.1:$fileserver_port/",
+# )
 
-maven_jar(
-    name = "thing_a_ma_bop",
-    artifact = "thing:amabop:1.9",
-)
-EOF
+# jvm_maven_import_external(
+#     name = "thing_a_ma_bop",
+#     artifact = "thing:amabop:1.9",
+# )
+# EOF
 
-  bazel build @thing_a_ma_bop//jar &> $TEST_log || fail "Building thing failed"
-  expect_log "Target @thing_a_ma_bop//jar:jar up-to-date"
-}
+#   bazel build @thing_a_ma_bop//jar &> $TEST_log || fail "Building thing failed"
+#   expect_log "Target @thing_a_ma_bop//jar:jar up-to-date"
+# }
 
-function test_settings() {
-  serve_artifact thing amabop 1.9
-  cat > WORKSPACE <<EOF
-maven_server(
-    name = "x",
-    url = "http://127.0.0.1:$fileserver_port/",
-    settings_file = "settings.xml",
-)
-maven_jar(
-    name = "thing_a_ma_bop",
-    artifact = "thing:amabop:1.9",
-    server = "x",
-)
-EOF
-
-  cat > settings.xml <<EOF
-<settings>
-  <servers>
-    <server>
-      <id>default</id>
-    </server>
-  </servers>
-</settings>
-EOF
-
-  bazel build @thing_a_ma_bop//jar &> $TEST_log \
-    || fail "Building thing failed"
-  expect_log "Target @thing_a_ma_bop//jar:jar up-to-date"
-
-  # Create an invalid settings.xml (by using a tag that isn't allowed in
-  # settings).
-  cat > settings.xml <<EOF
-<settings>
-  <repositories>
-    <repository>
-      <id>default</id>
-    </repository>
-  </repositories>
-</settings>
-EOF
-  bazel clean --expunge
-  bazel build @thing_a_ma_bop//jar &> $TEST_log \
-    && fail "Building thing succeeded"
-  expect_log "Unrecognised tag: 'repositories'"
-}
-
-function test_maven_server_dep() {
-  cat > WORKSPACE <<EOF
-maven_server(
-    name = "x",
-    url = "http://127.0.0.1:12345/",
-)
-EOF
-
-  cat > BUILD <<EOF
-sh_binary(
-    name = "y",
-    srcs = ["y.sh"],
-    deps = ["@x//:bar"],
-)
-EOF
-
-  touch y.sh
-  chmod +x y.sh
-
-  bazel build //:y &> $TEST_log && fail "Building thing failed"
-  expect_log "does not represent an actual repository"
-}
-
-function test_auth() {
-  startup_auth_server
-  create_artifact thing amabop 1.9
-  cat > WORKSPACE <<EOF
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "jvm_maven_import_external")
+# function disable_test_settings() {
+#   serve_artifact thing amabop 1.9
+#   cat > WORKSPACE <<EOF
+# load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
 # maven_server(
 #     name = "x",
 #     url = "http://127.0.0.1:$fileserver_port/",
 #     settings_file = "settings.xml",
 # )
+# jvm_maven_import_external(
+#     name = "thing_a_ma_bop",
+#     artifact = "thing:amabop:1.9",
+#     server = "x",
+# )
+# EOF
 
+#   cat > settings.xml <<EOF
+# <settings>
+#   <servers>
+#     <server>
+#       <id>default</id>
+#     </server>
+#   </servers>
+# </settings>
+# EOF
 
-jvm_maven_import_external(
+#   bazel build @thing_a_ma_bop//jar &> $TEST_log \
+#     || fail "Building thing failed"
+#   expect_log "Target @thing_a_ma_bop//jar:jar up-to-date"
+
+#   # Create an invalid settings.xml (by using a tag that isn't allowed in
+#   # settings).
+#   cat > settings.xml <<EOF
+# <settings>
+#   <repositories>
+#     <repository>
+#       <id>default</id>
+#     </repository>
+#   </repositories>
+# </settings>
+# EOF
+#   bazel clean --expunge
+#   bazel build @thing_a_ma_bop//jar &> $TEST_log \
+#     && fail "Building thing succeeded"
+#   expect_log "Unrecognised tag: 'repositories'"
+# }
+
+# function disable_test_maven_server_dep() {
+#   cat > WORKSPACE <<EOF
+# maven_server(
+#     name = "x",
+#     url = "http://127.0.0.1:12345/",
+# )
+# EOF
+
+#   cat > BUILD <<EOF
+# sh_binary(
+#     name = "y",
+#     srcs = ["y.sh"],
+#     deps = ["@x//:bar"],
+# )
+# EOF
+
+#   touch y.sh
+#   chmod +x y.sh
+
+#   bazel build //:y &> $TEST_log && fail "Building thing failed"
+#   expect_log "does not represent an actual repository"
+# }
+
+function test_auth() {
+  startup_auth_server
+  create_artifact thing amabop 1.9
+  cat > WORKSPACE <<EOF
+load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
+maven_server(
     name = "x",
-    urls = ["http://127.0.0.1:$fileserver_port/"],
-    )
-
-maven_jar(
+    url = "http://127.0.0.1:$fileserver_port/",
+    settings_file = "settings.xml",
+)
+jvm_maven_import_external(
     name = "good_auth",
     artifact = "thing:amabop:1.9",
     server = "x",
 )
 
-
+maven_server(
+    name = "y",
+    url = "http://127.0.0.1:$fileserver_port/",
+    settings_file = "settings.xml",
+)
+jvm_maven_import_external(
+    name = "bad_auth",
+    artifact = "thing:amabop:1.9",
+    server = "y",
+)
 EOF
 
   cat > settings.xml <<EOF

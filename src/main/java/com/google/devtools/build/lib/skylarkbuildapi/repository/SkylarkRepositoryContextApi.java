@@ -360,6 +360,8 @@ public interface SkylarkRepositoryContextApi<RepositoryFunctionExceptionT extend
       Object output,
       String sha256,
       Boolean executable,
+      String netrcFilePath,
+      Map<String, String> netrcDomainAuthTypes,
       Boolean allowFail,
       Location location)
       throws RepositoryFunctionExceptionT, EvalException, InterruptedException;
