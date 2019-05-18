@@ -432,6 +432,8 @@ public class SkylarkRepositoryContext
     env.getListener().post(w);
     Path downloadedPath;
     try {
+      boolean isNetrcAuthEnabled = !netrcDomainAuthTypes.isEmpty();
+      Map<String, String> hostToAuth = isNetrcAuthEnabled ? createAuthHeaders(netrcFilePath, netrcDomainAuthTypes) : null;
       checkInOutputDirectory("write", outputPath);
       makeDirectories(outputPath.getPath());
       downloadedPath =
@@ -442,7 +444,8 @@ public class SkylarkRepositoryContext
               outputPath.getPath(),
               env.getListener(),
               osObject.getEnvironmentVariables(),
-              getName());
+              getName(),
+              hostToAuth);
       if (executable) {
         outputPath.getPath().setExecutable(true);
       }
@@ -555,7 +558,7 @@ public class SkylarkRepositoryContext
               outputPath.getPath(),
               env.getListener(),
               osObject.getEnvironmentVariables(),
-			  getName(),
+			        getName(),
               hostToAuth);
     } catch (InterruptedException e) {
       env.getListener().post(w);

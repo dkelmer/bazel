@@ -275,7 +275,7 @@ function test_auth() {
   
   local netrc_path=$TEST_TMPDIR/.netrc
   echo "machine 127.0.0.1 login foo password bar" > $netrc_path
-  
+
   cat > WORKSPACE <<EOF
 load("@bazel_tools//tools/build_defs/repo:jvm.bzl", "jvm_maven_import_external")
 
@@ -285,7 +285,9 @@ jvm_maven_import_external(
     server_urls = ['http://127.0.0.1:$fileserver_port/',],
     artifact_sha256 = '$sha256',
     licenses = ["unencumbered"],
-    netrc_file_path = '$netrc_path'
+    netrc_file_path = '$netrc_path',
+    netrc_domain_auth_types = { "127.0.0.1" : "basic" }
+
 )
 EOF
 
@@ -306,13 +308,14 @@ EOF
 </settings>
 EOF
 
-  bazel build @good_auth//jar &> $TEST_log \
+  echo "PRESS THE DEBUGGER NOW NOW NOW"
+  bazel --host_jvm_debug build @good_auth//jar &> $TEST_log \
     || fail "Expected correct password to work"
   expect_log "Target @good_auth//jar:jar up-to-date"
 
-  bazel build @bad_auth//jar &> $TEST_log \
-    && fail "Expected incorrect password to fail"
-  expect_log "Unauthorized (401)"
+  # bazel build @bad_auth//jar &> $TEST_log \
+  #   && fail "Expected incorrect password to fail"
+  # expect_log "Unauthorized (401)"
 }
 
 run_suite "maven tests"

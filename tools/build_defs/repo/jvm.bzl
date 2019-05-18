@@ -58,6 +58,7 @@ def _jvm_import_external(repository_ctx):
     file_extension = "." + extension
     path = repository_ctx.name + file_extension
     netrc = repository_ctx.attr.netrc_file_path
+    netrc_domain_auth_types = repository_ctx.attr.netrc_domain_auth_types
     for url in urls:
         if url.endswith(file_extension):
             path = url[url.rindex("/") + 1:]
@@ -107,7 +108,7 @@ def _jvm_import_external(repository_ctx):
         lines.append(extra)
         if not extra.endswith("\n"):
             lines.append("")
-    repository_ctx.download(urls, path, sha, True, netrc)
+    repository_ctx.download(urls, path, sha, True, netrc, netrc_domain_auth_types)
     if srcurls and _should_fetch_sources_in_current_env(repository_ctx):
         repository_ctx.download(srcurls, srcpath, srcsha)
     repository_ctx.file("BUILD", "\n".join(lines))
@@ -230,8 +231,13 @@ jvm_import_external = repository_rule(
         "default_visibility": attr.string_list(default = ["//visibility:public"]),
         "extra_build_file_content": attr.string(),
         "netrc_file_path": attr.string(
-            doc = "The file path for the location of .netrc file path. Default will be a user home directory"
-    ),
+            doc = "The file path for the location of .netrc file path. Default will be a user home directory"),
+        "netrc_domain_auth_types": attr.string_dict(
+            doc =
+                "A map of domain pattern to authentication type" +
+                "currently supported authentication types:" +
+                "'github' - .netrc file should have a 'password' property" +
+                "for this domain / pattern with the token value"),
     },
     environ = [_FETCH_SOURCES_ENV_VAR],
     implementation = _jvm_import_external,
